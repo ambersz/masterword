@@ -23,7 +23,7 @@ function getTarget() {
   return wordList.list[i].toUpperCase() + '_';
 }
 const target = getTarget();
-window.theWord = target;
+if (process.env.NODE_ENV === 'development') window.theWord = target;
 /**
  * 
  * @param {string} a 
@@ -46,7 +46,6 @@ function compareWords(a, b) {
   return [exact, common]
 }
 
-document.compareWords = compareWords;
 
 function useInput(defaultValue) {
   const [value, setValue] = useState(defaultValue);
