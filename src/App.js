@@ -23,7 +23,6 @@ function getTarget() {
   return wordList.list[i].toUpperCase() + '_';
 }
 const target = getTarget();
-if (process.env.NODE_ENV === 'development') window.theWord = target;
 /**
  * 
  * @param {string} a 
@@ -39,13 +38,17 @@ function compareWords(a, b) {
   for (let i = 0; i < max; i++) {
     if (a[i] === b[i]) { exact++; } else {
       a[i] && remainingA.set(a[i], (remainingA.get(a[i]) ?? 0) + 1)
-      b[i] && remainingB.set(b[i], (remainingA.get(b[i]) ?? 0) + 1)
+      b[i] && remainingB.set(b[i], (remainingB.get(b[i]) ?? 0) + 1)
     }
   }
   Array.from(remainingA.entries()).forEach(([ak, av]) => { common += Math.min(av, remainingB.get(ak) ?? 0) })
   return [exact, common]
 }
 
+if (process.env.NODE_ENV === 'development') {
+  window.theWord = target;
+  window.compareWords = compareWords;
+}
 
 function useInput(defaultValue) {
   const [value, setValue] = useState(defaultValue);
