@@ -1,10 +1,11 @@
 import './App.css';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import wordList from './wordlist';
+import { sanitizeWord, scoreWord, validateWord } from './wordUtils';
 export const INTMAX32 = 2 ** 32;
 /**
- * 
- * @param {number} i 
+ *
+ * @param {number} i
  * @returns {number} another number
  */
 export function squirrel3(i) {
@@ -19,15 +20,15 @@ export function squirrel3(i) {
 }
 function getTarget() {
   const j = squirrel3(Math.floor(new Date().valueOf() / 86400000));
-  let i = Math.floor(j % wordList.numWords)
+  let i = Math.floor(j % wordList.numWords);
   return wordList.list[i].toUpperCase() + '_';
 }
 const target = getTarget();
 window.theWord = target;
 /**
- * 
- * @param {string} a 
- * @param {string} b 
+ *
+ * @param {string} a
+ * @param {string} b
  * @returns {[number, number]} number of positional matches, number of character matches
  */
 function compareWords(a, b) {
@@ -37,13 +38,17 @@ function compareWords(a, b) {
   let remainingA = new Map();
   let remainingB = new Map();
   for (let i = 0; i < max; i++) {
-    if (a[i] === b[i]) { exact++; } else {
-      a[i] && remainingA.set(a[i], (remainingA.get(a[i]) ?? 0) + 1)
-      b[i] && remainingB.set(b[i], (remainingA.get(b[i]) ?? 0) + 1)
+    if (a[i] === b[i]) {
+      exact++;
+    } else {
+      a[i] && remainingA.set(a[i], (remainingA.get(a[i]) ?? 0) + 1);
+      b[i] && remainingB.set(b[i], (remainingA.get(b[i]) ?? 0) + 1);
     }
   }
-  Array.from(remainingA.entries()).forEach(([ak, av]) => { common += Math.min(av, remainingB.get(ak) ?? 0) })
-  return [exact, common]
+  Array.from(remainingA.entries()).forEach(([ak, av]) => {
+    common += Math.min(av, remainingB.get(ak) ?? 0);
+  });
+  return [exact, common];
 }
 
 document.compareWords = compareWords;
@@ -58,18 +63,39 @@ function useInput(defaultValue) {
         setValue(e.target.value);
       }
     },
-    [setValue],
-  )
+    [setValue]
+  );
   return [value, cb];
 }
 function App() {
   const [guesses, setGuesses] = useState([]);
-  const [text, setText] = useInput('')
+  const [text, setText] = useInput('');
+  const [sanitized, setSanitized] = useState('');
+  const [error, setError] = useState('');
+  useEffect(() => {
+    setSanitized(sanitizeWord(text) + '_');
+  }, [text]);
+
+  function handleChange(e) {
+    setError('');
+    setText(e);
+  }
   return (
-    <div className="App"> 
+    <div className='App'>
       <br />
-      <form onSubmit={(e) => { e.preventDefault(); setGuesses([...guesses, text.toUpperCase() + "_"]); setText('') }}>
-        <input value={text} onChange={setText} />
+      <div style={{ color: 'red' }}>{error}</div>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          setText('');
+          if (validateWord(text)) {
+            setGuesses([...guesses, sanitized]);
+          } else {
+            setError(`${sanitizeWord(text)} is not in the word list.`);
+          }
+        }}
+      >
+        <input value={text} onChange={handleChange} />
       </form>
       <br />
       History:
@@ -86,15 +112,32 @@ function App() {
           {guesses.map((g, i) => {
             return (
               <tr key={i}>
-                <td>{g}</td>
-                {compareWords(target, g).map((a, j) => (<td key={j}>{a}</td>))}
-                <td>{g === target && "CONGRATULATIONS_"}</td>
+                <td className={'guess'}>
+                  <ColoredWord word={g} colors={scoreWord(sanitized, g)} />
+                </td>
+                {compareWords(target, g).map((a, j) => (
+                  <td key={j}>{a}</td>
+                ))}
+                <td>{g === target && 'CONGRATULATIONS_'}</td>
               </tr>
-            )
+            );
           })}
         </tbody>
       </table>
     </div>
+  );
+}
+
+function ColoredWord({ word, colors }) {
+  console.log({ word, colors });
+  return (
+    <>
+      {Array.from(word).map((char, i) => (
+        <span key={i} className={colors[i]}>
+          {char}
+        </span>
+      ))}
+    </>
   );
 }
 
